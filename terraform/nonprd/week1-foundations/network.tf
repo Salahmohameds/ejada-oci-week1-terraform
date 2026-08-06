@@ -1,13 +1,6 @@
-# ---------------------------------------------------------------------------
-# Network layer — VCN, IGW, route tables, security lists, subnets
-# ---------------------------------------------------------------------------
-#
-# IGW / route-table footgun:
-#   Attach the default route (0.0.0.0/0 → IGW) on the *public subnet* route
-#   table only. Never set route_table_id on the Internet Gateway for this lab;
-#   gateway association is a different OCI feature and breaks the usual
-#   public-subnet mental model.
-# ---------------------------------------------------------------------------
+# VCN, IGW, RTs, SLs, subnets.
+# Put 0.0.0.0/0 → IGW on the public *subnet* RT only — not on the IGW itself
+# (gateway RTs are a different feature and break the usual public-subnet model).
 
 module "vcn" {
   source = "../../modules/oracle-vcn"
@@ -47,7 +40,7 @@ module "public_route_table" {
   ]
 }
 
-# Private RT intentionally has no route rules (no IGW / no NAT for this lab).
+# No default route — private subnet stays offline for this lab (no NAT either).
 module "private_route_table" {
   source = "../../modules/oracle-route-table"
 
@@ -76,7 +69,7 @@ module "public_security_list" {
         max = 22
       }
     },
-    # OCI common ICMP for path MTU / troubleshooting (optional, lab-friendly).
+    # Path MTU discovery; common on OCI lab SLs.
     {
       protocol    = "1" # ICMP
       source      = "0.0.0.0/0"

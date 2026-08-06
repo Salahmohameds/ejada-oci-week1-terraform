@@ -1,3 +1,5 @@
+# Route table; rules list may be empty (private-subnet style).
+
 resource "oci_core_route_table" "this" {
   compartment_id = var.compartment_id
   vcn_id         = var.vcn_id

@@ -1,3 +1,5 @@
+# Handy after apply: main addresses, IDs, and an ssh_hint for the lab VM.
+
 output "vcn_id" {
   description = "OCID of the Week 1 VCN."
   value       = module.vcn.vcn_id

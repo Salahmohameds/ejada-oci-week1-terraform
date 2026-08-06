@@ -1,13 +1,10 @@
 ﻿# Ejada Cloud Build 2026 — Week 1 OCI Foundations (Terraform)
 
-**Author:** Salah Abdelhady  
-**Program:** Egypt Summer Internship Program 2026 — Cloud Build (OCI & Terraform)  
-**Scope of this repo:** Professional **README + Terraform modules + environment stack** only  
-(Console screenshots and full lab write-ups stay local; this is the portfolio-ready IaC deliverable.)
+**Author:** Salah Abdelhady
 
 ## What it deploys
 
-In a single environment stack (`nonprd/week1-foundations`):
+Environment stack `nonprd/week1-foundations`:
 
 | Resource | Name pattern | Notes |
 |----------|--------------|--------|
@@ -18,8 +15,8 @@ In a single environment stack (`nonprd/week1-foundations`):
 | Public subnet | `w1-public-subnet` | `10.0.1.0/24` |
 | Private subnet | `w1-private-subnet` | `10.0.2.0/24` (no public IPs) |
 | Compute | `w1-linux-vm` | Oracle Linux, Flex shape |
-| **Reserved public IP** | `w1-reserved-pip` | `lifetime = RESERVED` (extra lab feature) |
-| Block volume | `w1-block-vol` | Attached (paravirtualized), format/mount on OS |
+| **Reserved public IP** | `w1-reserved-pip` | `lifetime = RESERVED` |
+| Block volume | `w1-block-vol` | Attached (paravirtualized); format/mount on OS |
 | File Storage (optional) | `w1-fss` + MT + export | Flag `enable_file_storage` |
 
 Tags: `Project=Ejada-Cloud-Build`, `Lab=week1-lab1`, `ManagedBy=Terraform`.
@@ -39,20 +36,7 @@ flowchart TD
   PrivSub[Private Subnet 10.0.2.0/24] --> PrivRT[Private RT no IGW]
 ```
 
-## Azure ↔ OCI (quick map)
-
-| Azure | OCI |
-|-------|-----|
-| Resource Group | Compartment |
-| VNet / Subnet | VCN / Subnet |
-| NSG | Security List / NSG |
-| VM | Compute Instance |
-| Static Public IP | Reserved Public IP |
-| Managed Disk | Block Volume |
-| Azure Files (NFS) | File Storage + Mount Target |
-| ACR / AKS | OCIR / OKE (later weeks) |
-
-## Repo layout (Belal-style)
+## Project structure
 
 ```
 .
@@ -83,21 +67,20 @@ flowchart TD
             └── terraform.tfvars.example
 ```
 
-**Why this split:** modules are reusable building blocks; `week1-foundations` is the environment that wires them with variables — same idea as enterprise multi-env Terraform (and Belal’s pattern).
+Modules are reusable building blocks; `week1-foundations` wires them for one environment.
 
-## Extra feature: reserved public IP
+## Reserved public IP
 
 - Instance VNIC is created with **`assign_public_ip = false`** when `use_reserved_public_ip = true`.
 - Module `oracle-public-ip` creates `oci_core_public_ip` with **`lifetime = "RESERVED"`** and attaches it to the instance primary private IP.
-- **Azure analogy:** Static / Standard Public IP.
 
 ```hcl
-use_reserved_public_ip = true   # default recommended for this lab
+use_reserved_public_ip = true   # recommended for this lab
 ```
 
 ## Prerequisites
 
-1. OCI tenancy + compartment OCID (internship compartment)
+1. OCI tenancy + compartment OCID
 2. [OCI CLI](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm) configured (`~/.oci/config`, profile e.g. `DEFAULT`)
 3. [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
 4. SSH key pair (public key goes into `terraform.tfvars`)
@@ -134,7 +117,7 @@ ssh -i /path/to/private_key opc@PUBLIC_IP
 Then on the VM: format/mount block volume (`lsblk` → `mkfs`/`mount` on data disk only).  
 For FSS: mount NFS using Mount Target private IP + export path from outputs/Console (ensure SL allows NFS ports 111 / 2048–2050 / 2049 as needed).
 
-### Cleanup (required for lab credit hygiene)
+### Cleanup
 
 ```bash
 terraform destroy
@@ -148,8 +131,6 @@ terraform destroy
 
 ## Lab results (reference run)
 
-Evidence from a successful internship apply (then destroy):
-
 | Metric | Value |
 |--------|--------|
 | Plan / apply | **15 resources added** |
@@ -160,4 +141,4 @@ Evidence from a successful internship apply (then destroy):
 
 ## License / use
 
-Educational portfolio for Ejada Cloud Build Internship 2026. Deploy only in **your** designated compartment.
+Educational portfolio for Ejada Cloud Build 2026. Deploy only in **your** designated compartment.

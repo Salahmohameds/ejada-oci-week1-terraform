@@ -1,5 +1,5 @@
-# Resolve primary private IP from the VNIC when private_ip_id is not supplied.
-# Reserved public IPs attach to a private IP object, not the instance OCID directly.
+# Public IP attaches to a private IP (not the instance OCID). Resolve primary
+# private IP from the VNIC when private_ip_id is not passed in.
 data "oci_core_private_ips" "from_vnic" {
   count = var.private_ip_id == null ? 1 : 0
 

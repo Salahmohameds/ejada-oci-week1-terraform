@@ -1,3 +1,5 @@
+# Linux VM in the public subnet; optional RESERVED public IP attach.
+
 module "instance" {
   source = "../../modules/oracle-instance"
 
@@ -7,8 +9,8 @@ module "instance" {
   subnet_id           = module.public_subnet.id
   shape               = var.instance_shape
   ssh_public_keys     = var.ssh_public_key
-  # Ephemeral public IP only when reserved path is off; reserved IPs cannot
-  # coexist on the same VNIC private IP with an ephemeral assignment.
+  # Reserved IP path requires assign_public_ip=false; ephemeral + reserved
+  # cannot share the same VNIC private IP.
   assign_public_ip = var.use_reserved_public_ip ? false : var.instance_assign_public_ip
   hostname_label   = "linuxvm"
   freeform_tags    = local.freeform_tags
@@ -18,14 +20,12 @@ module "instance" {
     memory_in_gbs = var.instance_memory_in_gbs
   }
 
-  # Oracle Linux 9 resolved via data.oci_core_images inside the module.
+  # Latest Oracle Linux 9 image for this shape (picked inside the module).
   image_operating_system         = "Oracle Linux"
   image_operating_system_version = "9"
 }
 
-# Reserved (static) public IP — Azure Static Public IP / Standard PIP equivalent.
-# Pattern: create instance with assign_public_ip=false, then attach RESERVED IP
-# to the primary private IP on the VNIC.
+# Standalone RESERVED public IP → attach to primary private IP on the VNIC.
 module "reserved_public_ip" {
   count  = var.use_reserved_public_ip ? 1 : 0
   source = "../../modules/oracle-public-ip"

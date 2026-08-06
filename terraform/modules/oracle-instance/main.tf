@@ -1,3 +1,5 @@
+# Compute instance + image lookup; primary VNIC id is exported for reserved IP attach.
+
 data "oci_core_images" "oracle_linux" {
   compartment_id           = var.compartment_id
   operating_system         = var.image_operating_system
@@ -44,12 +46,10 @@ resource "oci_core_instance" "this" {
   freeform_tags = var.freeform_tags
   defined_tags  = var.defined_tags
 
-  # Preserve boot volume attachments / lifecycle defaults suitable for lab rebuilds.
   preserve_boot_volume = false
 }
 
-# Primary VNIC is needed to attach a reserved public IP (oci_core_public_ip
-# binds to private_ip_id, resolved from the VNIC).
+# Needed so callers can attach a RESERVED public IP to the primary private IP.
 data "oci_core_vnic_attachments" "primary" {
   compartment_id = var.compartment_id
   instance_id    = oci_core_instance.this.id

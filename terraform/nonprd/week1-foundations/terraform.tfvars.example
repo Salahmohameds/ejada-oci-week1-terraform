@@ -31,9 +31,8 @@ instance_shape          = "VM.Standard.E4.Flex"
 instance_ocpus          = 1
 instance_memory_in_gbs  = 8
 
-# Reserved public IP (static; Azure Static / Standard Public IP). Default true.
-# true  → instance has no ephemeral IP; oci_core_public_ip lifetime=RESERVED is attached.
-# false → ephemeral public IP via instance_assign_public_ip (classic lab behavior).
+# Reserved public IP: true → assign_public_ip=false + RESERVED IP attach (default).
+# false → ephemeral public IP via instance_assign_public_ip.
 use_reserved_public_ip    = true
 instance_assign_public_ip = true # only used when use_reserved_public_ip = false
 # availability_domain_index = 0
@@ -42,7 +41,6 @@ instance_assign_public_ip = true # only used when use_reserved_public_ip = false
 block_volume_size_in_gbs = 50
 
 # File Storage: leave false until mount-target quota is available.
-# Console lab was blocked by mount-target-count; flip only after mentors free quota.
 enable_file_storage = false
 # fss_export_path        = "/export"
 # fss_export_source_cidr = "10.0.0.0/16"

@@ -1,5 +1,4 @@
-# Block volume is always created and attached (paravirtualized) in the same AD
-# as the instance — matching Week 1 Lab 1 console outcomes.
+# Block volume always attached (same AD as the instance). FSS is optional.
 
 module "block_volume" {
   source = "../../modules/oracle-block-volume"
@@ -17,13 +16,7 @@ module "block_volume" {
   freeform_tags           = local.freeform_tags
 }
 
-# ---------------------------------------------------------------------------
-# File Storage (optional)
-# ---------------------------------------------------------------------------
-# enable_file_storage defaults to false: shared training tenancies frequently
-# exhaust mount-target-count. Flip to true only after mentors free quota.
-# ---------------------------------------------------------------------------
-
+# Default off: shared tenancies often exhaust mount-target-count.
 module "file_storage" {
   count  = var.enable_file_storage ? 1 : 0
   source = "../../modules/oracle-file-system"

@@ -1,7 +1,3 @@
-# ---------------------------------------------------------------------------
-# Authentication / tenancy
-# ---------------------------------------------------------------------------
-
 variable "region" {
   description = "OCI region home for this stack."
   type        = string
@@ -47,10 +43,6 @@ variable "compartment_ocid" {
   type        = string
 }
 
-# ---------------------------------------------------------------------------
-# Naming / tags
-# ---------------------------------------------------------------------------
-
 variable "name_prefix" {
   description = "Short prefix for resource display names (e.g. w1)."
   type        = string
@@ -68,10 +60,6 @@ variable "lab_tag" {
   type        = string
   default     = "week1-lab1"
 }
-
-# ---------------------------------------------------------------------------
-# Network
-# ---------------------------------------------------------------------------
 
 variable "vcn_cidr" {
   description = "CIDR block for the VCN."
@@ -91,10 +79,10 @@ variable "private_subnet_cidr" {
   default     = "10.0.2.0/24"
 }
 
+# No default — force an explicit /32 (or other tight CIDR) in terraform.tfvars.
 variable "allowed_ssh_cidr" {
-  description = "CIDR allowed to SSH (TCP/22) into the public subnet. Prefer YOUR_PUBLIC_IP/32 for labs that are not open to the world."
+  description = "CIDR allowed to SSH (TCP/22) on the public subnet. Prefer YOUR_PUBLIC_IP/32."
   type        = string
-  # No default on purpose — force an explicit choice in terraform.tfvars.
 }
 
 variable "vcn_dns_label" {
@@ -114,10 +102,6 @@ variable "private_subnet_dns_label" {
   type        = string
   default     = "private"
 }
-
-# ---------------------------------------------------------------------------
-# Compute
-# ---------------------------------------------------------------------------
 
 variable "ssh_public_key" {
   description = "SSH public key content placed on the instance (ssh-ed25519 / ssh-rsa line)."
@@ -155,8 +139,10 @@ variable "instance_assign_public_ip" {
   default     = true
 }
 
+# true → RESERVED IP on primary private IP (VNIC assign_public_ip forced false).
+# false → ephemeral IP via instance_assign_public_ip.
 variable "use_reserved_public_ip" {
-  description = "When true, create a RESERVED public IP and attach it to the instance primary private IP (assign_public_ip forced false). When false, use ephemeral public IP via instance_assign_public_ip."
+  description = "Create a RESERVED public IP and attach it to the instance primary private IP."
   type        = bool
   default     = true
 }
@@ -166,10 +152,6 @@ variable "availability_domain_index" {
   type        = number
   default     = 0
 }
-
-# ---------------------------------------------------------------------------
-# Storage
-# ---------------------------------------------------------------------------
 
 variable "block_volume_size_in_gbs" {
   description = "Size of the attached block volume in GBs."
@@ -183,10 +165,9 @@ variable "block_volume_vpus_per_gb" {
   default     = 10
 }
 
-# FSS is opt-in: default false because training tenancies often hit
-# mount-target-count quota (console lab blocked mount targets).
+# Opt-in; training tenancies often hit mount-target-count limits.
 variable "enable_file_storage" {
-  description = "When true, create File Storage file system + mount target + export. Default false due to mount-target quota."
+  description = "Create File Storage FS + mount target + export. Default false (MT quota)."
   type        = bool
   default     = false
 }

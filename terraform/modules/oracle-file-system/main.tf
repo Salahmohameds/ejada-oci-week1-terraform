@@ -1,9 +1,4 @@
-# File Storage (FSS): file system + mount target + export.
-#
-# QUOTA / LIMIT NOTE:
-# Many training tenancies hit "mount-target-count" limits. Creating a mount target
-# will fail when the tenancy has no remaining quota. Prefer enable_file_storage=false
-# at the environment stack until mentors free capacity.
+# FS + mount target + export. MT creation fails if mount-target-count is exhausted.
 
 resource "oci_file_storage_file_system" "this" {
   compartment_id      = var.compartment_id

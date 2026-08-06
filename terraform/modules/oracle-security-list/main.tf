@@ -1,3 +1,5 @@
+# Security list with dynamic ingress/egress (rules come from the stack).
+
 resource "oci_core_security_list" "this" {
   compartment_id = var.compartment_id
   vcn_id         = var.vcn_id
