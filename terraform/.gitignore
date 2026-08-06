@@ -1,0 +1,27 @@
+# Terraform local state, plugins, and secrets — never commit
+
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Variable files with real values (keep examples)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+!*.auto.tfvars.example
+
+# Keys and certs
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*_api_key*
