@@ -1,0 +1,70 @@
+# Copy to terraform.tfvars and fill in YOUR values.
+# NEVER commit terraform.tfvars (gitignored). NEVER put private keys in this repo.
+
+# --- Auth: prefer OCI CLI profile (~/.oci/config profile DEFAULT) ---
+region              = "me-jeddah-1"
+config_file_profile = "DEFAULT"
+
+# If you must use explicit API keys instead of the config profile, set these
+# in terraform.tfvars only (local, not committed).
+# tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaaXXXXXXXX"
+# user_ocid        = "ocid1.user.oc1..aaaaaaaaXXXXXXXX"
+# fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+# private_key_path = "C:/Users/YOU/.oci/oci_api_key.pem"
+
+# --- Scope ---
+compartment_ocid = "ocid1.compartment.oc1..aaaaaaaaXXXXXXXX"
+
+# --- Naming / tags ---
+name_prefix = "w2"
+project_tag = "Ejada-Cloud-Build"
+lab_tag     = "week2-lab2"
+
+# --- Network ---
+vcn_cidr            = "10.1.0.0/16"
+public_subnet_cidr  = "10.1.1.0/24"
+private_subnet_cidr = "10.1.2.0/24"
+vcn_dns_label       = "w2vcn"
+
+# Prefer YOUR_PUBLIC_IP/32 (whatismyip). 0.0.0.0/0 is lab-only, NOT production.
+allowed_ssh_cidr = "x.x.x.x/32"
+
+app_port             = 80
+enable_https_ingress = true
+
+# PDF gaps: SGW + NSGs + Bastion (SLs kept as secondary).
+enable_service_gateway = true
+enable_nsgs            = true
+enable_bastion         = true
+bastion_type           = "PUBLIC"
+# bastion_max_session_ttl_in_seconds = 10800
+# bastion_client_cidr_block_allow_list defaults to [allowed_ssh_cidr]
+
+# --- Compute ---
+# Paste the *public* key line only (contents of *.pub).
+ssh_public_key = "ssh-ed25519 AAAA... comment"
+
+instance_shape         = "VM.Standard.E4.Flex"
+instance_ocpus         = 1
+instance_memory_in_gbs = 8
+# availability_domain_index = 0
+
+image_operating_system         = "Oracle Linux"
+image_operating_system_version = "9"
+
+# Jump: false = Bastion is the secure admin path (PDF). true = public jump for debug only.
+enable_jump = false
+
+# --- File Storage ---
+enable_fss      = true
+fss_export_path = "/export"
+# fss_export_source_cidr defaults to vcn_cidr when empty
+
+# --- Load balancer (flexible) ---
+lb_shape               = "flexible"
+lb_min_bandwidth_mbps  = 10
+lb_max_bandwidth_mbps  = 10
+lb_is_private          = false
+lb_backend_set_name    = "w2-http-bs"
+lb_listener_name       = "http"
+lb_health_check_path   = "/"

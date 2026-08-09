@@ -1,8 +1,26 @@
-﻿# Ejada Cloud Build 2026 — Week 1 OCI Foundations (Terraform)
+﻿# Ejada Cloud Build 2026 — OCI Terraform
 
 **Author:** Salah Abdelhady
 
-## What it deploys
+Portfolio Terraform for Oracle Cloud Infrastructure (OCI) from the Ejada Cloud Build program. Two independent non-production stacks live under `terraform/nonprd/`. Console lab write-ups and screenshots stay in a private monorepo and are **not** part of this public repository.
+
+## Environments
+
+| Path | Lab | Style |
+|------|-----|--------|
+| [`terraform/nonprd/week1-foundations/`](terraform/nonprd/week1-foundations/) | Week 1 — compute, networking, block/FSS | Root module + shared `terraform/modules/*` |
+| [`terraform/nonprd/week2-lb-fss/`](terraform/nonprd/week2-lb-fss/) | Week 2 — public ALB, private app, FSS | Direct `oci_*` resources (no thin modules) |
+
+Each stack is self-contained: copy its own `terraform.tfvars.example` → `terraform.tfvars`, then `init` / `plan` / `apply` from that directory.
+
+## Design principles (mentor feedback)
+
+- **Variables first** — display names, shapes, CIDRs, ports, counts, and feature flags come from variables; real values live in **gitignored** `terraform.tfvars`.
+- **Ship only examples** — commit `terraform.tfvars.example` with placeholders; never real tenancy/compartment OCIDs, keys, or API PEM paths.
+- **Right-sized modules** — Week 1 reuses focused modules where assembly helps. Week 2 keeps a flat multi-file root with **direct OCI resources** (no one-resource wrappers for IGW, IP, NSG, etc.).
+- **Readable root** — split by concern (`network.tf`, `compute.tf`, `storage.tf`, `lb.tf`, …); use `count` / conditionals openly.
+
+## Week 1 — Foundations
 
 Environment stack `nonprd/week1-foundations`:
 
@@ -10,18 +28,18 @@ Environment stack `nonprd/week1-foundations`:
 |----------|--------------|--------|
 | VCN | `w1-vcn` | `10.0.0.0/16` |
 | Internet Gateway | `w1-igw` | Public internet path |
-| Route tables | `w1-public-rt` / `w1-private-rt` | Public: `0.0.0.0/0` → IGW (**on the subnet RT only**) |
+| Route tables | `w1-public-rt` / `w1-private-rt` | Public: `0.0.0.0/0` → IGW (on the **subnet** RT) |
 | Security lists | `w1-public-sl` / `w1-private-sl` | SSH locked to your `/32` |
 | Public subnet | `w1-public-subnet` | `10.0.1.0/24` |
 | Private subnet | `w1-private-subnet` | `10.0.2.0/24` (no public IPs) |
 | Compute | `w1-linux-vm` | Oracle Linux, Flex shape |
-| **Reserved public IP** | `w1-reserved-pip` | `lifetime = RESERVED` |
+| Reserved public IP | `w1-reserved-pip` | `lifetime = RESERVED` |
 | Block volume | `w1-block-vol` | Attached (paravirtualized); format/mount on OS |
 | File Storage (optional) | `w1-fss` + MT + export | Flag `enable_file_storage` |
 
 Tags: `Project=Ejada-Cloud-Build`, `Lab=week1-lab1`, `ManagedBy=Terraform`.
 
-## Architecture
+### Week 1 architecture
 
 ```mermaid
 flowchart TD
@@ -36,6 +54,38 @@ flowchart TD
   PrivSub[Private Subnet 10.0.2.0/24] --> PrivRT[Private RT no IGW]
 ```
 
+### Reserved public IP (Week 1)
+
+- Instance VNIC uses **`assign_public_ip = false`** when `use_reserved_public_ip = true`.
+- Module `oracle-public-ip` creates `oci_core_public_ip` with **`lifetime = "RESERVED"`** and attaches it to the instance primary private IP.
+
+## Week 2 — Load balancer + File Storage
+
+Environment stack `nonprd/week2-lb-fss` (CIDR example `10.1.0.0/16` — set in tfvars):
+
+| Layer | What it deploys |
+|-------|-----------------|
+| Network | VCN, public + private subnets, **IGW**, **NAT**, **Service Gateway (SGW)**, route tables, security lists |
+| Security | **NSGs** for LB, app, and mount target (toggles in variables) |
+| Compute | Private app instance (no public IP); cloud-init mounts FSS and serves HTTP |
+| Storage | File system + mount target (private) + export (e.g. `/export`) |
+| Load balancer | Flexible **public** Application LB → private backend `:80`; health check `/` |
+| Access | **OCI Bastion** coded (`enable_bastion`; may need IAM `manage bastion-family`); optional public jump (`enable_jump`, default `false`) |
+
+All Week 2 resources are **direct `oci_*`** in a multi-file root. See the stack [README](terraform/nonprd/week2-lb-fss/README.md).
+
+### Week 2 data path (brief)
+
+```mermaid
+flowchart LR
+  Users((Internet)) --> ALB[Public ALB]
+  ALB --> App[Private app VM]
+  App -->|NFS| FSS[File Storage]
+  App --> NAT[NAT Gateway]
+  App --> SGW[Service Gateway]
+  Ops((Admin)) -.->|Bastion session| App
+```
+
 ## Project structure
 
 ```
@@ -43,7 +93,7 @@ flowchart TD
 ├── README.md
 ├── .gitignore
 └── terraform/
-    ├── modules/
+    ├── modules/                    # Shared building blocks (Week 1)
     │   ├── oracle-vcn/
     │   ├── oracle-internet-gateway/
     │   ├── oracle-route-table/
@@ -52,60 +102,42 @@ flowchart TD
     │   ├── oracle-instance/
     │   ├── oracle-block-volume/
     │   ├── oracle-file-system/
-    │   └── oracle-public-ip/          # RESERVED public IP
+    │   └── oracle-public-ip/       # RESERVED public IP
     └── nonprd/
-        └── week1-foundations/         # root module (env assembly)
-            ├── providers.tf
-            ├── versions.tf
-            ├── variables.tf
-            ├── locals.tf
-            ├── data.tf
-            ├── network.tf
-            ├── compute.tf
-            ├── storage.tf
-            ├── outputs.tf
-            └── terraform.tfvars.example
-```
-
-Modules are reusable building blocks; `week1-foundations` wires them for one environment.
-
-## Reserved public IP
-
-- Instance VNIC is created with **`assign_public_ip = false`** when `use_reserved_public_ip = true`.
-- Module `oracle-public-ip` creates `oci_core_public_ip` with **`lifetime = "RESERVED"`** and attaches it to the instance primary private IP.
-
-```hcl
-use_reserved_public_ip = true   # recommended for this lab
+        ├── week1-foundations/      # Week 1 root (uses modules)
+        └── week2-lb-fss/           # Week 2 root (direct oci_*)
 ```
 
 ## Prerequisites
 
-1. OCI tenancy + compartment OCID
+1. OCI tenancy + compartment OCID (or rights to create in one)
 2. [OCI CLI](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm) configured (`~/.oci/config`, profile e.g. `DEFAULT`)
-3. [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
-4. SSH key pair (public key goes into `terraform.tfvars`)
+3. [Terraform](https://developer.hashicorp.com/terraform/install) `>= 1.5`
+4. SSH key pair (public key line goes into `terraform.tfvars`)
 
-## Usage
+## Clone and use
+
+```bash
+git clone https://github.com/Salahmohameds/ejada-oci-week1-terraform.git
+cd ejada-oci-week1-terraform
+```
+
+### Week 1
 
 ```bash
 cd terraform/nonprd/week1-foundations
 
 cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars:
-#   compartment_ocid
-#   ssh_public_key          (one line from .pub)
-#   allowed_ssh_cidr       (YOUR_PUBLIC_IP/32)
-#   use_reserved_public_ip = true
-#   enable_file_storage    = true   # set false if MT quota is exhausted
+# Edit: compartment_ocid, ssh_public_key, allowed_ssh_cidr (YOUR_IP/32)
+# use_reserved_public_ip = true
+# enable_file_storage    = true   # or false if FSS/MT quota is exhausted
 
 terraform init
 terraform fmt
 terraform validate
 terraform plan -out=tfplan
 terraform apply tfplan
-
 terraform output
-# instance_public_ip / reserved_public_ip / ssh_hint
 ```
 
 SSH:
@@ -114,10 +146,30 @@ SSH:
 ssh -i /path/to/private_key opc@PUBLIC_IP
 ```
 
-Then on the VM: format/mount block volume (`lsblk` → `mkfs`/`mount` on data disk only).  
-For FSS: mount NFS using Mount Target private IP + export path from outputs/Console (ensure SL allows NFS ports 111 / 2048–2050 / 2049 as needed).
+Then format/mount the data block volume on the OS if needed; mount FSS via mount-target private IP + export from outputs when enabled.
 
-### Cleanup
+### Week 2
+
+```bash
+cd terraform/nonprd/week2-lb-fss
+
+cp terraform.tfvars.example terraform.tfvars
+# Edit: compartment_ocid, ssh_public_key, allowed_ssh_cidr
+# enable_bastion / enable_nsgs / enable_service_gateway as needed
+
+terraform init
+terraform fmt
+terraform validate
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# After cloud-init (a few minutes):
+curl "http://$(terraform output -raw lb_public_ip)/"
+```
+
+Bastion create needs sufficient IAM (e.g. `manage bastion-family`). If create returns 404 or authorization errors, fix policy or set `enable_bastion = false` / use `enable_jump = true` for a lab-only public jump host. Stack networking (NSG, SGW, ALB, FSS) remains valid either way.
+
+### Cleanup (either stack)
 
 ```bash
 terraform destroy
@@ -126,18 +178,9 @@ terraform destroy
 ## Security notes
 
 - **Never commit** `terraform.tfvars`, `*.pem`, or `*.tfstate*`.
-- Prefer SSH from **your IP `/32`**, not `0.0.0.0/0`.
-- Do **not** associate a subnet route table with the Internet Gateway as a “gateway route table” (OCI footgun: only private-IP-style targets there).
-
-## Lab results (reference run)
-
-| Metric | Value |
-|--------|--------|
-| Plan / apply | **15 resources added** |
-| Destroy | **15 resources destroyed** |
-| Example reserved public IP (historical) | `144.24.210.184` (will differ per apply) |
-| Example private IP | `10.0.1.90` |
-| Export path | `/export` |
+- Prefer SSH / Bastion client allow-lists from **your IP `/32`**, not `0.0.0.0/0`.
+- Do **not** use the Internet Gateway as a “gateway route table” target incorrectly (subnet route tables only for `0.0.0.0/0` → IGW).
+- Destroy stacks when the lab is done to avoid unused resource cost.
 
 ## License / use
 

@@ -1,0 +1,69 @@
+#cloud-config
+# Private app: optional NFS mount + persistent HTTP on ${app_port}.
+package_update: true
+packages:
+  - nfs-utils
+  - python3
+
+write_files:
+  - path: /usr/local/bin/w2-app-bootstrap.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      APP_PORT="${app_port}"
+      MOUNT_PATH="${app_mount_path}"
+      EXPORT_PATH="${fss_export_path}"
+      MT_IP="${mount_target_ip}"
+      ENABLE_FSS="${enable_fss_mount}"
+
+      mkdir -p "$MOUNT_PATH"
+
+      if [ "$ENABLE_FSS" = "true" ] && [ -n "$MT_IP" ]; then
+        # Retry until mount target export is ready.
+        for i in $(seq 1 36); do
+          if mount -t nfs -o nosuid,resvport,sec=sys "$${MT_IP}:$${EXPORT_PATH}" "$MOUNT_PATH" 2>/dev/null; then
+            break
+          fi
+          sleep 5
+        done
+        if ! mountpoint -q "$MOUNT_PATH"; then
+          # Fallback: serve from local disk if NFS still not ready
+          echo "WARNING: NFS mount failed; serving local content" >&2
+        else
+          grep -q "$${MT_IP}:$${EXPORT_PATH}" /etc/fstab || \
+            echo "$${MT_IP}:$${EXPORT_PATH} $${MOUNT_PATH} nfs defaults,_netdev,nofail,nosuid,resvport 0 0" >> /etc/fstab
+        fi
+      fi
+
+      cat > "$${MOUNT_PATH}/index.html" << 'HTMLEOF'
+      ${index_html_body}
+      HTMLEOF
+
+      if command -v firewall-cmd >/dev/null 2>&1; then
+        firewall-cmd --permanent --add-port=$${APP_PORT}/tcp || true
+        firewall-cmd --reload || true
+      fi
+
+      cat > /etc/systemd/system/w2-app-http.service << EOF
+      [Unit]
+      Description=Week2 lab HTTP server (content from FSS mount)
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=simple
+      WorkingDirectory=$${MOUNT_PATH}
+      ExecStart=/usr/bin/python3 -m http.server $${APP_PORT}
+      Restart=always
+      RestartSec=3
+
+      [Install]
+      WantedBy=multi-user.target
+      EOF
+
+      systemctl daemon-reload
+      systemctl enable --now w2-app-http.service
+
+runcmd:
+  - /usr/local/bin/w2-app-bootstrap.sh
