@@ -2,7 +2,15 @@
 
 **Author:** Salah Abdelhady
 
-Portfolio Terraform for Oracle Cloud Infrastructure (OCI) from the Ejada Cloud Build program. Two independent non-production stacks live under `terraform/nonprd/`. Console lab write-ups and screenshots stay in a private monorepo and are **not** part of this public repository.
+Portfolio for Oracle Cloud Infrastructure (OCI) from the Ejada Cloud Build program:
+
+| Path | Contents |
+|------|----------|
+| [`terraform/`](terraform/) | Infrastructure as Code (IaC) per week |
+| [`week1/`](week1/) | Week 1 lab submission documentation (PDF) |
+| [`week2/`](week2/) | Week 2 lab submission documentation (PDF) + architecture diagram |
+
+Two independent non-production Terraform stacks live under `terraform/nonprd/`.
 
 ## Environments
 
@@ -86,12 +94,25 @@ flowchart LR
   Ops((Admin)) -.->|Bastion session| App
 ```
 
+## Lab documentation
+
+| Lab | File |
+|-----|------|
+| Week 1 | [week1/Week1-Lab1-OCI-Compute-Storage-Deployment-Console-and-Terraform.pdf](week1/Week1-Lab1-OCI-Compute-Storage-Deployment-Console-and-Terraform.pdf) |
+| Week 2 submission | [week2/WEEK2-LAB2-Ejada-Submission.pdf](week2/WEEK2-LAB2-Ejada-Submission.pdf) |
+| Week 2 architecture | [week2/week2-lab2-architecture_1.drawio](week2/week2-lab2-architecture_1.drawio) |
+
 ## Project structure
 
 ```
 .
 ├── README.md
 ├── .gitignore
+├── week1/
+│   └── Week1-Lab1-OCI-Compute-Storage-Deployment-Console-and-Terraform.pdf
+├── week2/
+│   ├── WEEK2-LAB2-Ejada-Submission.pdf
+│   └── week2-lab2-architecture_1.drawio
 └── terraform/
     ├── modules/                    # Shared building blocks (Week 1)
     │   ├── oracle-vcn/
