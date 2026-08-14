@@ -17,7 +17,7 @@ Two independent non-production Terraform stacks live under `terraform/nonprd/`.
 | Path | Lab | Style |
 |------|-----|--------|
 | [`terraform/nonprd/week1-foundations/`](terraform/nonprd/week1-foundations/) | Week 1 — compute, networking, block/FSS | Root module + shared `terraform/modules/*` |
-| [`terraform/nonprd/week2-lb-fss/`](terraform/nonprd/week2-lb-fss/) | Week 2 — public ALB, private app, FSS | Direct `oci_*` resources (no thin modules) |
+| [`terraform/nonprd/week2-lb-fss/`](terraform/nonprd/week2-lb-fss/) | Week 2 — public ALB, private app, FSS | Nested **cohesive** modules (`network`, `compute`, `storage`, `lb`) |
 
 Each stack is self-contained: copy its own `terraform.tfvars.example` → `terraform.tfvars`, then `init` / `plan` / `apply` from that directory.
 
@@ -25,8 +25,8 @@ Each stack is self-contained: copy its own `terraform.tfvars.example` → `terra
 
 - **Variables first** — display names, shapes, CIDRs, ports, counts, and feature flags come from variables; real values live in **gitignored** `terraform.tfvars`.
 - **Ship only examples** — commit `terraform.tfvars.example` with placeholders; never real tenancy/compartment OCIDs, keys, or API PEM paths.
-- **Right-sized modules** — Week 1 reuses focused modules where assembly helps. Week 2 keeps a flat multi-file root with **direct OCI resources** (no one-resource wrappers for IGW, IP, NSG, etc.).
-- **Readable root** — split by concern (`network.tf`, `compute.tf`, `storage.tf`, `lb.tf`, …); use `count` / conditionals openly.
+- **Modules for related groups** — wrap cohesive building blocks (e.g. VCN+gateways+RTs+SLs+NSGs+subnets, FSS+MT+export, LB+backends+listener). **Do not** use thin one-resource modules (IGW alone, public IP alone). **Do not** leave a whole lab as flat root `oci_*` only when clear groups exist.
+- **Readable root** — multi-file root (`network.tf`, `compute.tf`, …) that **calls** those modules; use `count` / conditionals openly. Single standalone resources (e.g. Bastion) may stay at root.
 
 ## Week 1 — Foundations
 
@@ -73,14 +73,13 @@ Environment stack `nonprd/week2-lb-fss` (CIDR example `10.1.0.0/16` — set in t
 
 | Layer | What it deploys |
 |-------|-----------------|
-| Network | VCN, public + private subnets, **IGW**, **NAT**, **Service Gateway (SGW)**, route tables, security lists |
-| Security | **NSGs** for LB, app, and mount target (toggles in variables) |
-| Compute | Private app instance (no public IP); cloud-init mounts FSS and serves HTTP |
-| Storage | File system + mount target (private) + export (e.g. `/export`) |
-| Load balancer | Flexible **public** Application LB → private backend `:80`; health check `/` |
-| Access | **OCI Bastion** coded (`enable_bastion`; may need IAM `manage bastion-family`); optional public jump (`enable_jump`, default `false`) |
+| Network module | VCN, public + private subnets, **IGW**, **NAT**, **Service Gateway (SGW)**, route tables, security lists, **NSGs** |
+| Compute module | Private app instance (no public IP); cloud-init mounts FSS and serves HTTP; optional jump |
+| Storage module | File system + mount target (private) + export (e.g. `/export`) |
+| LB module | Flexible **public** Application LB → private backend `:80`; health check `/` |
+| Access | **OCI Bastion** at root (`enable_bastion`; may need IAM `manage bastion-family`); optional public jump (`enable_jump`, default `false`) |
 
-All Week 2 resources are **direct `oci_*`** in a multi-file root. See the stack [README](terraform/nonprd/week2-lb-fss/README.md).
+Week 2 modules are nested under the stack (`terraform/nonprd/week2-lb-fss/modules/`) so Week 1 shared modules stay untouched. See the stack [README](terraform/nonprd/week2-lb-fss/README.md). Lab PDFs: [`week2/`](week2/).
 
 ### Week 2 data path (brief)
 
@@ -111,6 +110,7 @@ flowchart LR
 ├── week1/
 │   └── Week1-Lab1-OCI-Compute-Storage-Deployment-Console-and-Terraform.pdf
 ├── week2/
+│   ├── README.md
 │   ├── WEEK2-LAB2-Ejada-Submission.pdf
 │   └── week2-lab2-architecture_1.drawio
 └── terraform/
@@ -125,8 +125,13 @@ flowchart LR
     │   ├── oracle-file-system/
     │   └── oracle-public-ip/       # RESERVED public IP
     └── nonprd/
-        ├── week1-foundations/      # Week 1 root (uses modules)
-        └── week2-lb-fss/           # Week 2 root (direct oci_*)
+        ├── week1-foundations/      # Week 1 root (uses terraform/modules)
+        └── week2-lb-fss/           # Week 2 root + nested cohesive modules
+            └── modules/
+                ├── network/
+                ├── compute/
+                ├── storage/
+                └── lb/
 ```
 
 ## Prerequisites
@@ -179,7 +184,7 @@ cp terraform.tfvars.example terraform.tfvars
 # enable_bastion / enable_nsgs / enable_service_gateway as needed
 
 terraform init
-terraform fmt
+terraform fmt -recursive
 terraform validate
 terraform plan -out=tfplan
 terraform apply tfplan

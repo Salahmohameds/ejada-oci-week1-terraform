@@ -11,19 +11,3 @@ data "oci_core_images" "oracle_linux" {
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
-
-# All regional services CIDR for Service Gateway (object storage, etc.).
-data "oci_core_services" "all_osn" {
-  filter {
-    name   = "name"
-    values = ["All .* Services In Oracle Services Network"]
-    regex  = true
-  }
-}
-
-# Resolve mount target private IP OCID → dotted IP for cloud-init / NFS mount.
-data "oci_core_private_ip" "mount_target" {
-  count = var.enable_fss ? 1 : 0
-
-  private_ip_id = oci_file_storage_mount_target.app[0].private_ip_ids[0]
-}

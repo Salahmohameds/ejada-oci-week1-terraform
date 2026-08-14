@@ -1,3 +1,5 @@
+# Display names and shared tags — module inputs come from var.* / locals.
+
 locals {
   name_prefix = var.name_prefix
 
@@ -7,7 +9,6 @@ locals {
     ManagedBy = "Terraform"
   }
 
-  # Display names — var override or derived prefix.
   vcn_display_name            = coalesce(var.vcn_display_name != "" ? var.vcn_display_name : null, "${local.name_prefix}-vcn")
   igw_display_name            = coalesce(var.igw_display_name != "" ? var.igw_display_name : null, "${local.name_prefix}-igw")
   nat_display_name            = coalesce(var.nat_display_name != "" ? var.nat_display_name : null, "${local.name_prefix}-nat")
@@ -29,33 +30,8 @@ locals {
   lb_display_name             = coalesce(var.lb_display_name != "" ? var.lb_display_name : null, "${local.name_prefix}-lb")
 
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[var.availability_domain_index].name
+  image_id            = data.oci_core_images.oracle_linux.images[0].id
 
-  image_id = data.oci_core_images.oracle_linux.images[0].id
-
-  # Export allow for NFS clients within the VCN unless overridden.
   fss_export_source_cidr = coalesce(var.fss_export_source_cidr != "" ? var.fss_export_source_cidr : null, var.vcn_cidr)
-
-  # Bastion client allow-list: explicit list or fall back to allowed_ssh_cidr.
-  bastion_client_cidrs = length(var.bastion_client_cidr_block_allow_list) > 0 ? var.bastion_client_cidr_block_allow_list : [var.allowed_ssh_cidr]
-
-  # All <region> Services in Oracle Services Network (for SGW + private RT).
-  osn_service = try(data.oci_core_services.all_osn.services[0], null)
-
-  # NSG OCIDs for attachments (empty list when disabled).
-  nsg_lb_ids  = var.enable_nsgs ? [oci_core_network_security_group.lb[0].id] : []
-  nsg_app_ids = var.enable_nsgs ? [oci_core_network_security_group.app[0].id] : []
-  nsg_mt_ids  = var.enable_nsgs && var.enable_fss ? [oci_core_network_security_group.mt[0].id] : []
-
-  # MT IP when FSS is enabled (private IP data source).
-  mount_target_ip = var.enable_fss ? data.oci_core_private_ip.mount_target[0].ip_address : ""
-
-  # cloud-init renders mount + HTTP systemd unit on the private app VM.
-  app_user_data = base64encode(templatefile("${path.module}/cloud-init/app.yaml.tftpl", {
-    mount_target_ip  = local.mount_target_ip
-    fss_export_path  = var.fss_export_path
-    app_mount_path   = var.app_mount_path
-    app_port         = tostring(var.app_port)
-    index_html_body  = var.app_index_html_body
-    enable_fss_mount = var.enable_fss ? "true" : "false"
-  }))
+  bastion_client_cidrs   = length(var.bastion_client_cidr_block_allow_list) > 0 ? var.bastion_client_cidr_block_allow_list : [var.allowed_ssh_cidr]
 }

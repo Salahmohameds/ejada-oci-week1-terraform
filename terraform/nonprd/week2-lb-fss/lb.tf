@@ -1,51 +1,26 @@
-# Flexible Application Load Balancer — public, HTTP :app_port → private app.
+# Flexible ALB: load balancer + backend set + backend + listener.
 
-resource "oci_load_balancer_load_balancer" "app" {
-  compartment_id             = var.compartment_ocid
-  display_name               = local.lb_display_name
-  shape                      = var.lb_shape
-  subnet_ids                 = [oci_core_subnet.public.id]
-  is_private                 = var.lb_is_private
-  network_security_group_ids = local.nsg_lb_ids
-  freeform_tags              = local.freeform_tags
+module "lb" {
+  source = "./modules/lb"
 
-  shape_details {
-    minimum_bandwidth_in_mbps = var.lb_min_bandwidth_mbps
-    maximum_bandwidth_in_mbps = var.lb_max_bandwidth_mbps
-  }
-}
-
-resource "oci_load_balancer_backend_set" "http" {
-  name             = var.lb_backend_set_name
-  load_balancer_id = oci_load_balancer_load_balancer.app.id
-  policy           = var.lb_backend_set_policy
-
-  health_checker {
-    protocol          = "HTTP"
-    port              = var.app_port
-    url_path          = var.lb_health_check_path
-    interval_ms       = var.lb_health_check_interval_ms
-    timeout_in_millis = var.lb_health_check_timeout_ms
-    retries           = var.lb_health_check_retries
-    return_code       = var.lb_health_check_return_code
-  }
-}
-
-resource "oci_load_balancer_backend" "app" {
-  load_balancer_id = oci_load_balancer_load_balancer.app.id
-  backendset_name  = oci_load_balancer_backend_set.http.name
-  ip_address       = oci_core_instance.app.private_ip
-  port             = var.app_port
-  backup           = false
-  drain            = false
-  offline          = false
-  weight           = var.lb_backend_weight
-}
-
-resource "oci_load_balancer_listener" "http" {
-  load_balancer_id         = oci_load_balancer_load_balancer.app.id
-  name                     = var.lb_listener_name
-  default_backend_set_name = oci_load_balancer_backend_set.http.name
-  port                     = var.app_port
-  protocol                 = "HTTP"
+  compartment_ocid            = var.compartment_ocid
+  public_subnet_id            = module.network.public_subnet_id
+  nsg_ids                     = module.network.nsg_lb_ids
+  freeform_tags               = local.freeform_tags
+  lb_display_name             = local.lb_display_name
+  lb_shape                    = var.lb_shape
+  lb_min_bandwidth_mbps       = var.lb_min_bandwidth_mbps
+  lb_max_bandwidth_mbps       = var.lb_max_bandwidth_mbps
+  lb_is_private               = var.lb_is_private
+  lb_backend_set_name         = var.lb_backend_set_name
+  lb_backend_set_policy       = var.lb_backend_set_policy
+  lb_listener_name            = var.lb_listener_name
+  app_port                    = var.app_port
+  backend_ip_address          = module.compute.app_instance_private_ip
+  lb_health_check_path        = var.lb_health_check_path
+  lb_health_check_interval_ms = var.lb_health_check_interval_ms
+  lb_health_check_timeout_ms  = var.lb_health_check_timeout_ms
+  lb_health_check_retries     = var.lb_health_check_retries
+  lb_health_check_return_code = var.lb_health_check_return_code
+  lb_backend_weight           = var.lb_backend_weight
 }
