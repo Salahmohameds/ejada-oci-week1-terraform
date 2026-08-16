@@ -1,0 +1,17 @@
+# PVC — CSI oci-bv dynamically provisions an OCI Block Volume and attaches it
+# to the worker that runs the pod (ReadWriteOnce). Mounted at /data by the Deployment.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-data
+  namespace: w3-demo
+  labels:
+    app: nginx
+    lab: week3
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: oci-bv
+  resources:
+    requests:
+      storage: 50Gi

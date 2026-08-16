@@ -1,0 +1,8 @@
+# Namespace for the demo workload. Apply first. Name must match var.k8s_namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: w3-demo
+  labels:
+    app.kubernetes.io/part-of: ejada-week3
+    lab: week3

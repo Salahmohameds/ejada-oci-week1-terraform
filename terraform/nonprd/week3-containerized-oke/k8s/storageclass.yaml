@@ -1,0 +1,13 @@
+# OKE ships StorageClass oci-bv (CSI provisioner blockvolume.csi.oraclecloud.com).
+# This manifest is explicit for the lab: "external block volume attached to the app".
+# kubectl apply is a no-op merge if the class already exists on the cluster.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: oci-bv
+provisioner: blockvolume.csi.oraclecloud.com
+parameters:
+  attachment-type: paravirtualized
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer

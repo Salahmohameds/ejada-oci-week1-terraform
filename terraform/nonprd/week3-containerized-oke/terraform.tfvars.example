@@ -1,0 +1,102 @@
+# Copy to terraform.tfvars and fill in YOUR values.
+# NEVER commit terraform.tfvars (gitignored). NEVER put private keys in this repo.
+#
+# COST: enable_oke = true creates an OKE cluster + worker node + (later) a Service LoadBalancer.
+# Stage A: keep enable_oke = false (network + lb flow logs only).
+# Stage B: flip true only with a same-day destroy window.
+
+# --- Auth: prefer OCI CLI profile (~/.oci/config profile DEFAULT) ---
+region              = "me-jeddah-1"
+config_file_profile = "DEFAULT"
+
+# If you must use explicit API keys instead of the config profile, set these
+# in terraform.tfvars only (local, not committed).
+# tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaaXXXXXXXX"
+# user_ocid        = "ocid1.user.oc1..aaaaaaaaXXXXXXXX"
+# fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+# private_key_path = "C:/Users/YOU/.oci/oci_api_key.pem"
+
+# --- Scope (required) ---
+compartment_ocid = "ocid1.compartment.oc1..aaaaaaaaXXXXXXXX"
+
+# --- Naming / tags ---
+name_prefix = "w3"
+project_tag = "Ejada-Cloud-Build"
+lab_tag     = "week3"
+
+# --- Feature flags ---
+# Stage A (network only): keep false. Stage B: set true when you have a same-day destroy window.
+# WARNING: true = OKE cluster + worker node spend.
+enable_oke = false
+
+enable_service_gateway = true
+enable_oke_nsgs        = true
+enable_https_ingress   = true
+
+# --- Network (avoid week1 10.0 / week2 10.1) ---
+vcn_cidr      = "10.2.0.0/16"
+vcn_dns_label = "w3vcn"
+
+# lb is public (IGW) so the API endpoint and Service LBs can hold a public IP.
+# workers / pods are private (NAT). pods CIDR is /18 because VCN-native CNI
+# assigns each pod a VCN IP (a /24 is too small at 31 pods/node).
+subnets = {
+  lb = {
+    display_name               = "w3-lb-subnet"
+    cidr                       = "10.2.1.0/24"
+    dns_label                  = "w3lb"
+    prohibit_public_ip_on_vnic = false
+    route_type                 = "igw"
+    enable_logs                = true # north-south flow logs; works with enable_oke = false
+  }
+  workers = {
+    display_name               = "w3-workers-subnet"
+    cidr                       = "10.2.10.0/24"
+    dns_label                  = "w3workers"
+    prohibit_public_ip_on_vnic = true
+    route_type                 = "nat"
+    enable_logs                = false
+  }
+  pods = {
+    display_name               = "w3-pods-subnet"
+    cidr                       = "10.2.128.0/18"
+    dns_label                  = "w3pods"
+    prohibit_public_ip_on_vnic = true
+    route_type                 = "nat"
+    enable_logs                = false
+  }
+}
+
+# Prefer YOUR_PUBLIC_IP/32 (whatismyip). 0.0.0.0/0 is lab-only, NOT production.
+allowed_ssh_cidr = "x.x.x.x/32"
+
+app_port = 80
+
+# Flow logs: lb enable_logs = true is enough for Stage A (no OKE). The network
+# module creates one shared log group; the subnet module attaches the SERVICE log.
+# log_retention_duration = 30
+# flow_log_sampling_rate = 1
+
+# --- Compute / nodes ---
+# Paste the *public* key line only (contents of *.pub).
+ssh_public_key = "ssh-ed25519 AAAA... comment"
+# availability_domain_index = 0
+
+# --- OKE (highest quota — destroy the same session after demo) ---
+oke_cluster_type    = "BASIC_CLUSTER"
+oke_cni_type        = "OCI_VCN_IP_NATIVE"
+oke_endpoint_public = true
+oke_services_cidr   = "10.96.0.0/16"
+oke_node_pool_size  = 1
+oke_node_shape      = "VM.Standard.E4.Flex"
+oke_node_ocpus      = 1
+oke_node_memory_in_gbs = 8
+oke_max_pods_per_node  = 31
+# Cheaper ARM alternative if the tenancy has A1 quota:
+# oke_node_shape         = "VM.Standard.A1.Flex"
+# oke_node_memory_in_gbs = 6
+
+# kubernetes_version = "v1.34.1"   # empty = latest from cluster_option (do not pass intern compartment to that data source)
+# oke_node_image_id  = "ocid1.image.oc1.me-jeddah-1.xxxxxxxx"  # pin if node_pool_option sources is empty (IAM)
+
+k8s_namespace = "w3-demo"

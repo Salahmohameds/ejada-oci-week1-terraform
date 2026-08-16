@@ -9,8 +9,9 @@ Portfolio for Oracle Cloud Infrastructure (OCI) from the Ejada Cloud Build progr
 | [`terraform/`](terraform/) | Infrastructure as Code (IaC) per week |
 | [`week1/`](week1/) | Week 1 lab submission documentation (PDF) |
 | [`week2/`](week2/) | Week 2 lab submission documentation (PDF) + architecture diagram |
+| [`week3/`](week3/) | Week 3 lab submission documentation (PDF) + architecture diagram |
 
-Two independent non-production Terraform stacks live under `terraform/nonprd/`.
+Three independent non-production Terraform stacks live under `terraform/nonprd/`.
 
 ## Environments
 
@@ -18,6 +19,7 @@ Two independent non-production Terraform stacks live under `terraform/nonprd/`.
 |------|-----|--------|
 | [`terraform/nonprd/week1-foundations/`](terraform/nonprd/week1-foundations/) | Week 1 — compute, networking, block/FSS | Root module + shared `terraform/modules/*` |
 | [`terraform/nonprd/week2-lb-fss/`](terraform/nonprd/week2-lb-fss/) | Week 2 — public ALB, private app, FSS | Nested **cohesive** modules (`network`, `compute`, `storage`, `lb`) |
+| [`terraform/nonprd/week3-containerized-oke/`](terraform/nonprd/week3-containerized-oke/) | Week 3 — OKE, VCN-native CNI, kubectl workload | Nested **cohesive** modules (`network`, `subnet`, `oke`) |
 
 Each stack is self-contained: copy its own `terraform.tfvars.example` → `terraform.tfvars`, then `init` / `plan` / `apply` from that directory.
 
@@ -93,6 +95,33 @@ flowchart LR
   Ops((Admin)) -.->|Bastion session| App
 ```
 
+## Week 3 — Containerized application / OKE
+
+Environment stack `nonprd/week3-containerized-oke` (CIDR example `10.2.0.0/16` — set in tfvars):
+
+| Layer | What it deploys |
+|-------|-----------------|
+| Network module | VCN, **IGW**, **NAT**, **Service Gateway (SGW)**, shared VCN flow-log group |
+| Subnet module | `for_each` lb (public, IGW), workers (private, NAT), pods (private, NAT, `/18` for VCN-native CNI) + RT + SL + optional logs |
+| OKE module | BASIC cluster, **OCI_VCN_IP_NATIVE**, managed node pool, cluster NSGs (count = `enable_oke`) |
+| Workload | `k8s/` nginx Deployment + PVC (`oci-bv` block volume) + LoadBalancer Service — applied with kubectl after the cluster is ACTIVE |
+
+Stage A: `enable_oke = false` (network + lb flow logs). Stage B: `enable_oke = true` (cluster + node pool). Destroy the same session after the demo.
+
+Week 3 modules are nested under the stack (`terraform/nonprd/week3-containerized-oke/modules/`). See the stack [README](terraform/nonprd/week3-containerized-oke/README.md). Lab PDF and diagram: [`week3/`](week3/).
+
+### Week 3 data path (brief)
+
+```mermaid
+flowchart LR
+  Users((Internet)) --> LB[Public Service LoadBalancer]
+  LB --> Pod[nginx pod]
+  Pod -->|PVC| BV[Block Volume oci-bv]
+  API[Public API endpoint] --> Ctrl[OKE control plane]
+  Ctrl --> Workers[Private worker subnet]
+  Workers --> Pods[Private pod subnet VCN-native]
+```
+
 ## Lab documentation
 
 | Lab | File |
@@ -100,6 +129,8 @@ flowchart LR
 | Week 1 | [week1/Week1-Lab1-OCI-Compute-Storage-Deployment-Console-and-Terraform.pdf](week1/Week1-Lab1-OCI-Compute-Storage-Deployment-Console-and-Terraform.pdf) |
 | Week 2 submission | [week2/WEEK2-LAB2-Ejada-Submission.pdf](week2/WEEK2-LAB2-Ejada-Submission.pdf) |
 | Week 2 architecture | [week2/week2-lab2-architecture_1.drawio](week2/week2-lab2-architecture_1.drawio) |
+| Week 3 Terraform documentation | [week3/Week3-Lab3-Terraform-Documentation.pdf](week3/Week3-Lab3-Terraform-Documentation.pdf) |
+| Week 3 architecture | [week3/Week3-Terraform-Diagrams.drawio](week3/Week3-Terraform-Diagrams.drawio) |
 
 ## Project structure
 
@@ -113,6 +144,10 @@ flowchart LR
 │   ├── README.md
 │   ├── WEEK2-LAB2-Ejada-Submission.pdf
 │   └── week2-lab2-architecture_1.drawio
+├── week3/
+│   ├── README.md
+│   ├── Week3-Lab3-Terraform-Documentation.pdf
+│   └── Week3-Terraform-Diagrams.drawio
 └── terraform/
     ├── modules/                    # Shared building blocks (Week 1)
     │   ├── oracle-vcn/
@@ -126,12 +161,18 @@ flowchart LR
     │   └── oracle-public-ip/       # RESERVED public IP
     └── nonprd/
         ├── week1-foundations/      # Week 1 root (uses terraform/modules)
-        └── week2-lb-fss/           # Week 2 root + nested cohesive modules
+        ├── week2-lb-fss/           # Week 2 root + nested cohesive modules
+        │   └── modules/
+        │       ├── network/
+        │       ├── compute/
+        │       ├── storage/
+        │       └── lb/
+        └── week3-containerized-oke/  # Week 3 root + nested cohesive modules
+            ├── k8s/
             └── modules/
                 ├── network/
-                ├── compute/
-                ├── storage/
-                └── lb/
+                ├── subnet/
+                └── oke/
 ```
 
 ## Prerequisites
@@ -195,7 +236,33 @@ curl "http://$(terraform output -raw lb_public_ip)/"
 
 Bastion create needs sufficient IAM (e.g. `manage bastion-family`). If create returns 404 or authorization errors, fix policy or set `enable_bastion = false` / use `enable_jump = true` for a lab-only public jump host. Stack networking (NSG, SGW, ALB, FSS) remains valid either way.
 
-### Cleanup (either stack)
+### Week 3
+
+```bash
+cd terraform/nonprd/week3-containerized-oke
+
+cp terraform.tfvars.example terraform.tfvars
+# Edit: compartment_ocid, ssh_public_key, allowed_ssh_cidr
+# Stage A: enable_oke = false
+# Stage B: enable_oke = true  (cluster + node; destroy the same day)
+
+terraform init
+terraform fmt -recursive
+terraform validate
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# After the cluster is ACTIVE: write kubeconfig, then:
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/storageclass.yaml
+kubectl apply -f k8s/pvc.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+```
+
+OKE and a Service LoadBalancer incur cost. Delete the Service and PVC **before** `terraform destroy`.
+
+### Cleanup (any stack)
 
 ```bash
 terraform destroy

@@ -1,0 +1,21 @@
+# Kubernetes Service LoadBalancer → OCI Flexible LB in the public lb subnet.
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: w3-demo
+  labels:
+    app: nginx
+    lab: week3
+  annotations:
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "10"
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
