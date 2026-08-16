@@ -4,7 +4,7 @@ Apply **after** the OKE cluster is ACTIVE and kubeconfig is written. Terraform d
 
 Namespace: `w3-demo` (must match `k8s_namespace` in tfvars).
 
-Authoritative lab story: [`../../../labs/week3-containerized-oke/WEEK3-LAB3-TERRAFORM-DOCUMENTATION.md`](../../../labs/week3-containerized-oke/WEEK3-LAB3-TERRAFORM-DOCUMENTATION.md).
+
 
 ## Image
 
