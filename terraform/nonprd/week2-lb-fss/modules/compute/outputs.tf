@@ -1,19 +1,14 @@
-output "app_instance_id" {
-  description = "OCID of the private app instance."
-  value       = oci_core_instance.app.id
+output "instance_ids" {
+  description = "Map of instance key (e.g. \"app\", \"jump\") to OCID."
+  value       = { for key, inst in oci_core_instance.this : key => inst.id }
 }
 
-output "app_instance_private_ip" {
-  description = "Private IP of the app instance."
-  value       = oci_core_instance.app.private_ip
+output "instance_private_ips" {
+  description = "Map of instance key to private IP."
+  value       = { for key, inst in oci_core_instance.this : key => inst.private_ip }
 }
 
-output "jump_instance_id" {
-  description = "OCID of the jump host when enable_jump is true."
-  value       = try(oci_core_instance.jump[0].id, null)
-}
-
-output "jump_instance_public_ip" {
-  description = "Public IP of the jump host when enable_jump is true."
-  value       = try(oci_core_instance.jump[0].public_ip, null)
+output "instance_public_ips" {
+  description = "Map of instance key to public IP (null when assign_public_ip is false)."
+  value       = { for key, inst in oci_core_instance.this : key => inst.public_ip }
 }

@@ -1,4 +1,4 @@
-# OKE related-group (WhatsApp): cluster + OCI_VCN_IP_NATIVE + managed node pool.
+# OKE related-group: cluster + OCI_VCN_IP_NATIVE + managed node pool.
 # Optional API / worker / pod NSGs are in nsg.tf (same module — not a split wrapper).
 #
 # VCN-native CNI: each pod gets a VCN IP from the pod subnet instead of a Flannel

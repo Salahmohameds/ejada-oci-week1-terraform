@@ -17,6 +17,17 @@ override.tf.json
 !*.tfvars.example
 !*.auto.tfvars.example
 
+# Backend config with real values (keep examples). backend.tf itself is
+# committed (it only has literal, non-secret bucket/region/endpoint values).
+backend.hcl
+!backend.hcl.example
+
+# Never commit OCI Customer Secret Key / S3-compatible credentials
+.oci-s3-credentials
+*.env
+.env
+.env.*
+
 # Keys and certs
 *.pem
 *.key

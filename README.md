@@ -11,17 +11,18 @@ Portfolio for Oracle Cloud Infrastructure (OCI) from the Ejada Cloud Build progr
 | [`week2/`](week2/) | Week 2 lab submission documentation (PDF) + architecture diagram |
 | [`week3/`](week3/) | Week 3 lab submission documentation (PDF) + architecture diagram |
 
-Three independent non-production Terraform stacks live under `terraform/nonprd/`.
+Four non-production Terraform stacks live under `terraform/nonprd/` (three labs plus a one-time remote-state bootstrap).
 
 ## Environments
 
 | Path | Lab | Style |
 |------|-----|--------|
 | [`terraform/nonprd/week1-foundations/`](terraform/nonprd/week1-foundations/) | Week 1 — compute, networking, block/FSS | Root module + shared `terraform/modules/*` |
-| [`terraform/nonprd/week2-lb-fss/`](terraform/nonprd/week2-lb-fss/) | Week 2 — public ALB, private app, FSS | Nested **cohesive** modules (`network`, `compute`, `storage`, `lb`) |
-| [`terraform/nonprd/week3-containerized-oke/`](terraform/nonprd/week3-containerized-oke/) | Week 3 — OKE, VCN-native CNI, kubectl workload | Nested **cohesive** modules (`network`, `subnet`, `oke`) |
+| [`terraform/nonprd/week2-lb-fss/`](terraform/nonprd/week2-lb-fss/) | Week 2 — public ALB, private app, FSS | Nested **cohesive** modules (`network`, `compute`, `storage`, `lb`); compute uses `for_each` over an `instances` map |
+| [`terraform/nonprd/week3-containerized-oke/`](terraform/nonprd/week3-containerized-oke/) | Week 3 — OKE, VCN-native CNI, kubectl workload | Nested **cohesive** modules (`network`, `subnet`, `oke`); OKE NSGs use `for_each` |
+| [`terraform/nonprd/bootstrap-state/`](terraform/nonprd/bootstrap-state/) | Remote state bucket (Object Storage) | One-time bootstrap; keeps **local** state itself |
 
-Each stack is self-contained: copy its own `terraform.tfvars.example` → `terraform.tfvars`, then `init` / `plan` / `apply` from that directory.
+Each lab stack is self-contained: copy its own `terraform.tfvars.example` → `terraform.tfvars`, then `init` / `plan` / `apply` from that directory. Week 2 and Week 3 also ship `backend.tf` + `backend.hcl.example` for optional remote state on OCI Object Storage (S3-compatible API) — see [terraform/README.md](terraform/README.md#remote-state-planned) after applying `bootstrap-state` once.
 
 ## Design principles (mentor feedback)
 
@@ -159,7 +160,9 @@ flowchart LR
     │   ├── oracle-block-volume/
     │   ├── oracle-file-system/
     │   └── oracle-public-ip/       # RESERVED public IP
+    ├── README.md                   # Remote state + stack index
     └── nonprd/
+        ├── bootstrap-state/        # One-time Object Storage bucket for remote state
         ├── week1-foundations/      # Week 1 root (uses terraform/modules)
         ├── week2-lb-fss/           # Week 2 root + nested cohesive modules
         │   └── modules/
@@ -270,7 +273,7 @@ terraform destroy
 
 ## Security notes
 
-- **Never commit** `terraform.tfvars`, `*.pem`, or `*.tfstate*`.
+- **Never commit** `terraform.tfvars`, `backend.hcl`, `*.pem`, Customer Secret Keys, or `*.tfstate*`.
 - Prefer SSH / Bastion client allow-lists from **your IP `/32`**, not `0.0.0.0/0`.
 - Do **not** use the Internet Gateway as a “gateway route table” target incorrectly (subnet route tables only for `0.0.0.0/0` → IGW).
 - Destroy stacks when the lab is done to avoid unused resource cost.

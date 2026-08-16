@@ -30,15 +30,15 @@ output "endpoints" {
 
 output "nsg_api_id" {
   description = "API endpoint NSG OCID when enable_nsgs is true."
-  value       = try(oci_core_network_security_group.api[0].id, null)
+  value       = try(oci_core_network_security_group.this["api"].id, null)
 }
 
 output "nsg_workers_id" {
   description = "Worker NSG OCID when enable_nsgs is true."
-  value       = try(oci_core_network_security_group.workers[0].id, null)
+  value       = try(oci_core_network_security_group.this["workers"].id, null)
 }
 
 output "nsg_pods_id" {
   description = "Pod NSG OCID when VCN-native NSGs are enabled."
-  value       = try(oci_core_network_security_group.pods[0].id, null)
+  value       = try(oci_core_network_security_group.this["pods"].id, null)
 }

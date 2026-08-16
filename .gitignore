@@ -9,6 +9,14 @@
 crash.log
 override.tf
 
+# Backend config with real values (keep examples)
+backend.hcl
+!backend.hcl.example
+.oci-s3-credentials
+*.env
+.env
+.env.*
+
 tfplan
 *.tfplan
 

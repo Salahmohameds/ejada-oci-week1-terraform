@@ -20,22 +20,22 @@ output "availability_domain" {
 
 output "app_instance_id" {
   description = "OCID of the private app instance."
-  value       = module.compute.app_instance_id
+  value       = module.compute.instance_ids["app"]
 }
 
 output "app_instance_private_ip" {
   description = "Private IP of the app instance (LB backend)."
-  value       = module.compute.app_instance_private_ip
+  value       = module.compute.instance_private_ips["app"]
 }
 
 output "jump_instance_id" {
   description = "OCID of the jump host when enable_jump is true."
-  value       = module.compute.jump_instance_id
+  value       = try(module.compute.instance_ids["jump"], null)
 }
 
 output "jump_instance_public_ip" {
   description = "Public IP of the jump host when enable_jump is true."
-  value       = module.compute.jump_instance_public_ip
+  value       = try(module.compute.instance_public_ips["jump"], null)
 }
 
 output "file_system_id" {
@@ -113,7 +113,7 @@ output "bastion_session_create_hint" {
   value = length(oci_bastion_bastion.this) > 0 ? format(
     "oci bastion session create-managed-ssh --bastion-id %s --target-resource-id %s --target-os-username opc --target-private-key-file <path-to-private-key> --ssh-public-key-file <path-to-public-key> --session-ttl 1800 --wait-for-state SUCCEEDED",
     oci_bastion_bastion.this[0].id,
-    module.compute.app_instance_id
+    module.compute.instance_ids["app"]
   ) : (var.enable_bastion ? "Bastion enabled in config but not in state — CreateBastion needs bastion-family IAM (or set enable_bastion=false)." : null)
 }
 
@@ -121,7 +121,7 @@ output "ssh_jump_hint" {
   description = "SSH example for jump host when enable_jump is true."
   value = var.enable_jump ? format(
     "ssh -i <path-to-private-key> opc@%s",
-    coalesce(module.compute.jump_instance_public_ip, "<jump-public-ip>")
+    coalesce(try(module.compute.instance_public_ips["jump"], null), "<jump-public-ip>")
   ) : "enable_jump is false — use OCI Bastion (bastion_session_create_hint) for private SSH"
 }
 
@@ -129,7 +129,7 @@ output "ssh_private_via_jump_hint" {
   description = "ProxyJump-style SSH to the private app (when jump is enabled)."
   value = var.enable_jump ? format(
     "ssh -i <path-to-private-key> -J opc@%s opc@%s",
-    coalesce(module.compute.jump_instance_public_ip, "<jump-ip>"),
-    module.compute.app_instance_private_ip
+    coalesce(try(module.compute.instance_public_ips["jump"], null), "<jump-ip>"),
+    module.compute.instance_private_ips["app"]
   ) : null
 }

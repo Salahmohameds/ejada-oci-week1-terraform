@@ -43,6 +43,34 @@ cp terraform.tfvars.example terraform.tfvars
 # edit: compartment_ocid, ssh_public_key, allowed_ssh_cidr
 ```
 
+## Remote state (planned)
+
+`backend.tf` configures the Terraform `s3` backend against OCI Object
+Storage's S3-compatible API, storing state at
+`w-terraform-state-intern18/week2-lb-fss/terraform.tfstate` instead of a
+local `terraform.tfstate`. This is not active until the one-time setup below
+is done:
+
+1. Apply `../bootstrap-state/` once to create the bucket (see its README).
+2. Terraform backend blocks only take literal values, so replace
+   `<namespace>` in `backend.tf` with the real namespace from the bootstrap
+   stack's `namespace` output (or use `backend.hcl` — copy
+   `backend.hcl.example`, fill it in, gitignored — with
+   `terraform init -backend-config=backend.hcl`).
+3. Export the S3-compatible credentials (an OCI Customer Secret Key, not the
+   `oci` provider's config profile) before `terraform init`:
+
+   ```powershell
+   $env:AWS_ACCESS_KEY_ID     = "<customer-secret-key access key>"
+   $env:AWS_SECRET_ACCESS_KEY = "<customer-secret-key secret key>"
+   ```
+
+4. `terraform init -reconfigure`.
+
+Never commit `backend.hcl` or the secret key value — only `backend.tf` (no
+secrets, literal bucket/region/endpoint) and `backend.hcl.example` are
+tracked.
+
 ## Deploy
 
 ```bash

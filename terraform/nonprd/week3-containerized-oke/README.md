@@ -1,8 +1,8 @@
 # Week 3 — Containerized application / OKE (Terraform)
 
 **Student:** Salah Abdelhady  
-**Lab write-up:** [`../../../week3/Week3-Lab3-Terraform-Documentation.pdf`](../../../week3/Week3-Lab3-Terraform-Documentation.pdf)  
-**Diagrams:** [`../../../week3/Week3-Terraform-Diagrams.drawio`](../../../week3/Week3-Terraform-Diagrams.drawio)  
+**Authoritative lab write-up:** [`../../../labs/week3-containerized-oke/WEEK3-LAB3-TERRAFORM-DOCUMENTATION.md`](../../../labs/week3-containerized-oke/WEEK3-LAB3-TERRAFORM-DOCUMENTATION.md)  
+**Diagrams:** [`../../../labs/week3-containerized-oke/docs/WEEK3-TERRAFORM-DIAGRAMS.md`](../../../labs/week3-containerized-oke/docs/WEEK3-TERRAFORM-DIAGRAMS.md)  
 **Status:** Applied in stages, validated, then **destroyed** (2026-08-16). Do **not** apply from this note unless you intend another lab session with a same-day destroy.
 
 Never commit `terraform.tfvars`.
@@ -26,6 +26,34 @@ k8s/               # kubectl after the cluster exists (not a Terraform module)
 `module.oke` is gated by `enable_oke`. NSGs stay inside the OKE module (`nsg.tf`), not a separate root module. `module.network` has no count wrapper.
 
 ---
+
+## Remote state (planned)
+
+`backend.tf` configures the Terraform `s3` backend against OCI Object
+Storage's S3-compatible API, storing state at
+`w-terraform-state-intern18/week3-containerized-oke/terraform.tfstate`
+instead of a local `terraform.tfstate`. This is not active until the
+one-time setup below is done:
+
+1. Apply `../bootstrap-state/` once to create the bucket (see its README).
+2. Terraform backend blocks only take literal values, so replace
+   `<namespace>` in `backend.tf` with the real namespace from the bootstrap
+   stack's `namespace` output (or use `backend.hcl` — copy
+   `backend.hcl.example`, fill it in, gitignored — with
+   `terraform init -backend-config=backend.hcl`).
+3. Export the S3-compatible credentials (an OCI Customer Secret Key, not the
+   `oci` provider's config profile) before `terraform init`:
+
+   ```powershell
+   $env:AWS_ACCESS_KEY_ID     = "<customer-secret-key access key>"
+   $env:AWS_SECRET_ACCESS_KEY = "<customer-secret-key secret key>"
+   ```
+
+4. `terraform init -reconfigure`.
+
+Never commit `backend.hcl` or the secret key value — only `backend.tf` (no
+secrets, literal bucket/region/endpoint) and `backend.hcl.example` are
+tracked.
 
 ## Usage (staged)
 
@@ -58,4 +86,4 @@ kubectl apply -f k8s/service.yaml
 
 Delete Service + PVC **before** `terraform destroy`.
 
-Details: the lab Terraform documentation linked above.
+Details, evidence, and screenshots: the lab Terraform documentation linked above.

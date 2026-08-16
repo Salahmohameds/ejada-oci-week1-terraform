@@ -34,4 +34,46 @@ locals {
 
   fss_export_source_cidr = coalesce(var.fss_export_source_cidr != "" ? var.fss_export_source_cidr : null, var.vcn_cidr)
   bastion_client_cidrs   = length(var.bastion_client_cidr_block_allow_list) > 0 ? var.bastion_client_cidr_block_allow_list : [var.allowed_ssh_cidr]
+
+  # Single map driving module.compute's for_each — add/remove entries here instead of
+  # adding new module calls. "jump" is only present when enable_jump = true.
+  compute_instances = merge(
+    {
+      app = {
+        display_name            = local.app_instance_display_name
+        shape                   = var.instance_shape
+        ocpus                   = var.instance_ocpus
+        memory_in_gbs           = var.instance_memory_in_gbs
+        boot_volume_size_in_gbs = var.boot_volume_size_in_gbs
+        subnet_id               = module.network.private_subnet_id
+        assign_public_ip        = false
+        hostname_label          = var.app_hostname_label
+        nsg_ids                 = module.network.nsg_app_ids
+        ssh_public_key          = var.ssh_public_key
+        cloud_init = {
+          mount_target_ip  = coalesce(module.storage.mount_target_ip, "")
+          fss_export_path  = var.fss_export_path
+          app_mount_path   = var.app_mount_path
+          app_port         = var.app_port
+          index_html_body  = var.app_index_html_body
+          enable_fss_mount = var.enable_fss
+        }
+      }
+    },
+    var.enable_jump ? {
+      jump = {
+        display_name            = local.jump_instance_display_name
+        shape                   = var.instance_shape
+        ocpus                   = var.jump_ocpus
+        memory_in_gbs           = var.jump_memory_in_gbs
+        boot_volume_size_in_gbs = var.boot_volume_size_in_gbs
+        subnet_id               = module.network.public_subnet_id
+        assign_public_ip        = true
+        hostname_label          = var.jump_hostname_label
+        nsg_ids                 = []
+        ssh_public_key          = var.ssh_public_key
+        cloud_init              = null
+      }
+    } : {}
+  )
 }

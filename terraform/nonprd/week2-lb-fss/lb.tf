@@ -16,7 +16,7 @@ module "lb" {
   lb_backend_set_policy       = var.lb_backend_set_policy
   lb_listener_name            = var.lb_listener_name
   app_port                    = var.app_port
-  backend_ip_address          = module.compute.app_instance_private_ip
+  backend_ip_address          = module.compute.instance_private_ips["app"]
   lb_health_check_path        = var.lb_health_check_path
   lb_health_check_interval_ms = var.lb_health_check_interval_ms
   lb_health_check_timeout_ms  = var.lb_health_check_timeout_ms

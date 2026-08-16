@@ -1,0 +1,13 @@
+# Alternative to editing backend.tf directly: copy this to backend.hcl
+# (gitignored) with real values, then run:
+#   terraform init -backend-config=backend.hcl
+# and change backend.tf to an empty `backend "s3" {}` block.
+
+bucket                      = "w-terraform-state-intern18"
+key                         = "week3-containerized-oke/terraform.tfstate"
+region                      = "me-jeddah-1"
+endpoint                    = "https://<namespace>.compat.objectstorage.me-jeddah-1.oraclecloud.com"
+skip_region_validation      = true
+skip_credentials_validation = true
+skip_metadata_api_check     = true
+force_path_style            = true

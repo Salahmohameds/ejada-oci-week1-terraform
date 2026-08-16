@@ -9,24 +9,8 @@ variable "availability_domain" {
 }
 
 variable "image_id" {
-  description = "OCID of the boot image."
+  description = "OCID of the boot image (shared by all instances)."
   type        = string
-}
-
-variable "private_subnet_id" {
-  description = "Private subnet for the app instance."
-  type        = string
-}
-
-variable "public_subnet_id" {
-  description = "Public subnet for the optional jump host."
-  type        = string
-}
-
-variable "nsg_app_ids" {
-  description = "NSG OCIDs attached to the app VNIC."
-  type        = list(string)
-  default     = []
 }
 
 variable "freeform_tags" {
@@ -35,94 +19,32 @@ variable "freeform_tags" {
   default     = {}
 }
 
-variable "ssh_public_key" {
-  description = "SSH public key for instance metadata."
-  type        = string
-  sensitive   = true
-}
-
-variable "instance_shape" {
-  description = "Compute shape for app (and jump if enabled)."
-  type        = string
-}
-
-variable "instance_ocpus" {
-  description = "OCPUs for the app instance."
-  type        = number
-}
-
-variable "instance_memory_in_gbs" {
-  description = "Memory (GB) for the app instance."
-  type        = number
-}
-
-variable "boot_volume_size_in_gbs" {
-  description = "Boot volume size (GB)."
-  type        = number
-}
-
-variable "app_instance_display_name" {
-  description = "Private app instance display name."
-  type        = string
-}
-
-variable "app_hostname_label" {
-  description = "Hostname label for the app VNIC."
-  type        = string
-}
-
-variable "app_port" {
-  description = "HTTP port served by the private app."
-  type        = number
-}
-
-variable "app_mount_path" {
-  description = "Local directory where FSS is mounted."
-  type        = string
-}
-
-variable "app_index_html_body" {
-  description = "HTML body written to the FSS mount as index.html."
-  type        = string
-}
-
-variable "enable_fss" {
-  description = "Whether cloud-init should mount FSS."
-  type        = bool
-}
-
-variable "fss_export_path" {
-  description = "NFS export path for cloud-init."
-  type        = string
-}
-
-variable "mount_target_ip" {
-  description = "Mount target private IP for cloud-init (empty when FSS disabled)."
-  type        = string
-  default     = ""
-}
-
-variable "enable_jump" {
-  description = "Create a public jump host."
-  type        = bool
-}
-
-variable "jump_instance_display_name" {
-  description = "Jump host display name."
-  type        = string
-}
-
-variable "jump_hostname_label" {
-  description = "Hostname label for the jump VNIC."
-  type        = string
-}
-
-variable "jump_ocpus" {
-  description = "OCPUs for the jump host."
-  type        = number
-}
-
-variable "jump_memory_in_gbs" {
-  description = "Memory (GB) for the jump host."
-  type        = number
+variable "instances" {
+  description = <<-EOT
+    Map of compute instances to create, keyed by a short logical name (e.g. "app", "jump").
+    One oci_core_instance is created per map entry via for_each — add/remove entries to
+    add/remove VMs instead of adding new module calls or resource blocks.
+  EOT
+  type = map(object({
+    display_name            = string
+    shape                   = string
+    ocpus                   = number
+    memory_in_gbs           = number
+    boot_volume_size_in_gbs = number
+    subnet_id               = string
+    assign_public_ip        = bool
+    hostname_label          = string
+    nsg_ids                 = optional(list(string), [])
+    ssh_public_key          = string
+    # Optional cloud-init inputs. Leave null (default) for instances that don't need
+    # the FSS-mount + HTTP bootstrap script (e.g. a plain jump host).
+    cloud_init = optional(object({
+      mount_target_ip  = string
+      fss_export_path  = string
+      app_mount_path   = string
+      app_port         = number
+      index_html_body  = string
+      enable_fss_mount = bool
+    }))
+  }))
 }

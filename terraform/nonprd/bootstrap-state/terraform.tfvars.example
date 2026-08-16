@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars and fill in YOUR values.
+# NEVER commit terraform.tfvars (gitignored). NEVER put private keys in this repo.
+
+# --- Auth: prefer OCI CLI profile (~/.oci/config profile DEFAULT) ---
+region              = "me-jeddah-1"
+config_file_profile = "DEFAULT"
+
+# If you must use explicit API keys instead of the config profile, set these
+# in terraform.tfvars only (local, not committed).
+# tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaaXXXXXXXX"
+# user_ocid        = "ocid1.user.oc1..aaaaaaaaXXXXXXXX"
+# fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+# private_key_path = "C:/Users/YOU/.oci/oci_api_key.pem"
+
+# --- Scope ---
+compartment_ocid = "ocid1.compartment.oc1..aaaaaaaaXXXXXXXX"
+
+# --- Bucket ---
+state_bucket_name = "w-terraform-state-intern18"
+enable_versioning = true
