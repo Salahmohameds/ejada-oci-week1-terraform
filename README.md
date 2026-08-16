@@ -9,7 +9,7 @@ Portfolio for Oracle Cloud Infrastructure (OCI) from the Ejada Cloud Build progr
 | [`terraform/`](terraform/) | Infrastructure as Code (IaC) per week |
 | [`week1/`](week1/) | Week 1 lab submission documentation (PDF) |
 | [`week2/`](week2/) | Week 2 lab submission documentation (PDF) + architecture diagram |
-| [`week3/`](week3/) | Week 3 lab submission documentation (PDF) + architecture diagram |
+| [`week3/`](week3/) | Week 3 lab docs: Terraform write-up, architecture diagrams, modules reference PDF + module diagrams |
 
 Four non-production Terraform stacks live under `terraform/nonprd/` (three labs plus a one-time remote-state bootstrap).
 
@@ -109,7 +109,7 @@ Environment stack `nonprd/week3-containerized-oke` (CIDR example `10.2.0.0/16` �
 
 Stage A: `enable_oke = false` (network + lb flow logs). Stage B: `enable_oke = true` (cluster + node pool). Destroy the same session after the demo.
 
-Week 3 modules are nested under the stack (`terraform/nonprd/week3-containerized-oke/modules/`). See the stack [README](terraform/nonprd/week3-containerized-oke/README.md). Lab PDF and diagram: [`week3/`](week3/).
+Week 3 modules are nested under the stack (`terraform/nonprd/week3-containerized-oke/modules/`). See the stack [README](terraform/nonprd/week3-containerized-oke/README.md). Lab deliverables: [`week3/`](week3/).
 
 ### Week 3 data path (brief)
 
@@ -130,8 +130,10 @@ flowchart LR
 | Week 1 | [week1/Week1-Lab1-OCI-Compute-Storage-Deployment-Console-and-Terraform.pdf](week1/Week1-Lab1-OCI-Compute-Storage-Deployment-Console-and-Terraform.pdf) |
 | Week 2 submission | [week2/WEEK2-LAB2-Ejada-Submission.pdf](week2/WEEK2-LAB2-Ejada-Submission.pdf) |
 | Week 2 architecture | [week2/week2-lab2-architecture_1.drawio](week2/week2-lab2-architecture_1.drawio) |
-| Week 3 Terraform documentation | [week3/Week3-Lab3-Terraform-Documentation.pdf](week3/Week3-Lab3-Terraform-Documentation.pdf) |
-| Week 3 architecture | [week3/Week3-Terraform-Diagrams.drawio](week3/Week3-Terraform-Diagrams.drawio) |
+| Week 3 Terraform documentation | [week3/Week3-Lab3-Terraform-Documentation.pdf](week3/Week3-Lab3-Terraform-Documentation.pdf) — full Terraform lab write-up (architecture, commands, evidence, screenshots) |
+| Week 3 architecture diagrams | [week3/Week3-Terraform-Diagrams.drawio](week3/Week3-Terraform-Diagrams.drawio) — architecture / traffic / topology diagrams for the Terraform lab |
+| Week 3 modules reference | [week3/Week3-Terraform-Modules-Reference.pdf](week3/Week3-Terraform-Modules-Reference.pdf) — detailed reference for each module (network, subnet, oke): every file, purpose, inputs, outputs |
+| Week 3 module diagrams | [week3/Week3-Modules-Diagrams2.drawio](week3/Week3-Modules-Diagrams2.drawio) — module-map / module diagrams companion to the modules reference |
 
 ## Project structure
 
@@ -148,7 +150,9 @@ flowchart LR
 ├── week3/
 │   ├── README.md
 │   ├── Week3-Lab3-Terraform-Documentation.pdf
-│   └── Week3-Terraform-Diagrams.drawio
+│   ├── Week3-Terraform-Diagrams.drawio
+│   ├── Week3-Terraform-Modules-Reference.pdf
+│   └── Week3-Modules-Diagrams2.drawio
 └── terraform/
     ├── modules/                    # Shared building blocks (Week 1)
     │   ├── oracle-vcn/
